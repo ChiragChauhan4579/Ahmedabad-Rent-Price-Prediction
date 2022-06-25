@@ -24,7 +24,6 @@ def main():
     """
 
     st.markdown(html_temp,unsafe_allow_html=True)
-    # loaded_model = pickle.load(open('xgboost_98.pkl', 'rb'))
 
     df = pd.read_csv('Ahmedabad_rent.csv')
 
@@ -37,4 +36,55 @@ def main():
     furnish_type = st.sidebar.selectbox('Furnish type',options=['Furnished','Semi-Furnished','Unfurnished'])
     locality = st.sidebar.selectbox('Locality',options=df['locality'])
     bathroom = st.sidebar.selectbox('No. of Bathrooms',options=['1','2','3','4','5'])
+
+    if st.sidebar.button('Submit'):
+        col = ['seller_type','bedroom','layout_type','property_type','area','furnish_type','bathroom']
+        res_df = pd.DataFrame(columns=col)  
+        res_df = res_df.append({
+            'seller_type':seller_type,
+            'bedroom':bedroom,
+            'layout_type':layout_type,
+            'property_type':property_type,
+            'area':area,
+            'furnish_type':furnish_type,
+            'bathroom':bathroom
+        },ignore_index=True)
+
+        df2=pd.get_dummies(df["locality"])
+        col_df = pd.DataFrame(columns=df2.columns)
+        if locality:
+            col_df = col_df.append({f'{locality}':1},ignore_index=True)
+            col_df = col_df.fillna(0)
+
+        res_df = pd.concat([res_df,col_df],axis=1)
+        
+        final_model = pickle.load(open('kmeans.pkl', 'rb'))
+
+        prediction=final_model.predict(res_df)
+
+        clus_df = pd.DataFrame(columns=['0','1','2','3'])
+        clus_df = clus_df.append({f'{prediction}':1},ignore_index=True)
+        clus_df.fillna(0)
+        
+        res_df = pd.concat([res_df,clus_df],axis=1)
+        
+        loaded_model = pickle.load(open('xgboost.pkl', 'rb'))
+
+        res = loaded_model.predict(res)
+
+        st.success(f'The expected price is between {res-2000} - {res+2000}')
+        with mlflow.start_run() as run:
+            params = {
+                'seller_type':seller_type,
+                'bedroom':bedroom,
+                'layout_type':layout_type,
+                'property_type':property_type,
+                'area':area,
+                'furnish_type':furnish_type,
+                'bathroom':bathroom,
+                'locality':locality,
+                'predicted price':res
+                }
+            mlflow.log_params(params)
+
 main()
