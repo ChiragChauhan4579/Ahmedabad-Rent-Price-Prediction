@@ -3,3 +3,4 @@ mlflow
 scikit-learn
 pandas
 numpy
+xgboost==1.6.1
