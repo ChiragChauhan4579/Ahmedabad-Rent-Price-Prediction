@@ -1,6 +1,5 @@
 streamlit
 mlflow
 scikit-learn
-pickle
 pandas
 numpy
